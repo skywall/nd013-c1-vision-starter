@@ -4,3 +4,4 @@
 data/train
 data/val
 data/test
+experiments/pretrained_model
