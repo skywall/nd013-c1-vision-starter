@@ -4,24 +4,18 @@
 
 For this project, we will be using data from the [Waymo Open dataset](https://waymo.com/open/).
 
-[OPTIONAL] - The files can be downloaded directly from the website as tar files or from the [Google Cloud Bucket](https://console.cloud.google.com/storage/browser/waymo_open_dataset_v_1_2_0_individual_files/) as individual tf records. We have already provided the data required to finish this project in the workspace, so you don't need to download it separately.
-
-## Structure
-
-### Data
-
 The data you will use for training, validation and testing is organized as follow:
 ```
 /home/workspace/data/waymo
-    - training_and_validation - contains 97 files to train and validate your models
+    - processed - contains files to train and validate your models
     - train: contain the train data (empty to start)
     - val: contain the val data (empty to start)
-    - test - contains 3 files to test your model and create inference videos
+    - test: contain the val data (empty to start)
 ```
 
-The `training_and_validation` folder contains file that have been downsampled: we have selected one every 10 frames from 10 fps videos. The `testing` folder contains frames from the 10 fps video without downsampling.
+The `processed` folder contains file that have been downsampled: we have selected one every 10 frames from 10 fps videos. The `test` folder contains frames from the 10 fps video without downsampling.
 
-You will split this `training_and_validation` data into `train`, and `val` sets by completing and executing the `create_splits.py` file.
+You will split this `processed` data into `train`, and `val` sets by completing and executing the `create_splits.py` file.
 
 ### Experiments
 The experiments folder will be organized as follow:
