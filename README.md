@@ -161,6 +161,18 @@ This section should detail the cross validation strategy and justify your approa
 - Model performance - poor
 - [TensorBoard.dev experiment](https://tensorboard.dev/experiment/PuoUG3DwQeuWZv8vsgNeQw/)
 
+#### Experiment 0 - more data augmentation
+
+| Config       | Value                                         |
+|--------------|-----------------------------------------------|
+| Model        | `ssd_resnet50_v1_fpn_640x640_coco17_tpu-8`    |
+| Augmentation | `random_horizontal_flip`, `random_crop_image`, `random_adjust_saturation`, `random_adjust_brightness`, `random_adjust_contrast` |
+| Optimizer    | `momentum_optimizer`                          |
+| Batch size   | 4                                             |
+
+##### Results
+- TBD
+
 This section should detail the results of the reference experiment. It should includes training metrics and a detailed explanation of the algorithm's performances.
 
 #### Improve on the reference
