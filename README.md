@@ -7,13 +7,13 @@ For this project, we will be using data from the [Waymo Open dataset](https://wa
 The data you will use for training, validation and testing is organized as follow:
 ```
 /home/workspace/data/waymo
-    - processed - contains files to train and validate your models
-    - train: contain the train data (empty to start)
-    - val: contain the val data (empty to start)
-    - test: contain the val data (empty to start)
+    - processed - contains files to train and validate your models (only sample of the data provided directly in repository)
+    - train: contain the train data (empty at start)
+    - val: contain the val data (empty at start)
+    - test: contain the val data (empty at start)
 ```
 
-The `processed` folder contains file that have been downsampled: we have selected one every 10 frames from 10 fps videos. The `test` folder contains frames from the 10 fps video without downsampling.
+The `processed` folder contains files that have been downsampled: we have selected one every 10 frames from 10 fps videos. The `test` folder contains frames from the 10 fps video without downsampling.
 
 You will split this `processed` data into `train`, and `val` sets by completing and executing the `create_splits.py` file.
 
@@ -41,8 +41,6 @@ For local setup if you have your own Nvidia GPU, you can use the provided Docker
 Follow [the README therein](./build/README.md) to create a docker container and install all prerequisites.
 
 ### Download and process the data
-
-**Note:** ”If you are using the classroom workspace, we have already completed the steps in the section for you. You can find the downloaded and processed files within the `/home/workspace/data/preprocessed_data/` directory. Check this out then proceed to the **Exploratory Data Analysis** part.
 
 The first goal of this project is to download the data from the Waymo's Google Cloud bucket to your local machine. For this project, we only need a subset of the data provided (for example, we do not need to use the Lidar data). Therefore, we are going to download and trim immediately each file. In `download_process.py`, you can view the `create_tf_example` function, which will perform this processing. This function takes the components of a Waymo Tf record and saves them in the Tf Object Detection api format. An example of such function is described [here](https://tensorflow-object-detection-api-tutorial.readthedocs.io/en/latest/training.html#create-tensorflow-records). We are already providing the `label_map.pbtxt` file.
 
@@ -114,9 +112,6 @@ Keep in mind that the following are also available:
 * experiment with the optimizer: type of optimizer, learning rate, scheduler etc
 * experiment with the architecture. The Tf Object Detection API [model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md) offers many architectures. Keep in mind that the `pipeline.config` file is unique for each architecture and you will have to edit it.
 
-**Important:** If you are working on the workspace, your storage is limited. You may to delete the checkpoints files after each experiment. You should however keep the `tf.events` files located in the `train` and `eval` folder of your experiments. You can also keep the `saved_model` folder to create your videos.
-
-
 ### Creating an animation
 #### Export the trained model
 Modify the arguments of the following function to adjust it to your models:
@@ -135,18 +130,77 @@ python inference_video.py --labelmap_path label_map.pbtxt --model_path experimen
 ## Submission Template
 
 ### Project overview
-This section should contain a brief description of the project and what we are trying to achieve. Why is object detection such an important component of self driving car systems?
+This project aims to utilize Tensorflow Object Detection API for object detection task in image data captured by on-car camera. Waymo Open Dataset is used as a source of training, validation and test data. The goal is to detect cars, pedestrians and cyclists, and correctly classify them. Self-driving car task relies heavily on object detection / image data since it brings a lot of information about surrounding world.
 
 ### Set up
-This section should contain a brief description of the steps to follow to run the code for this repository.
+#### Jupyter Notebook and lightweight TF Objection Detection API usage
+
+Directory `build/` contains Docker image specification useful for TF Object Detection API operations like pipeline.config extraction, model inference or data download. It's definitely not suitable for training because it doesn't utilize GPU.
+
+Makefile of the project contains set of commands for easier work with Docker image:
+```bash
+# Commands useful on host machine
+build-container: ## Build testing Docker container without GPU support
+	cd build; docker build -t nd013-c1-vision-starter -f Dockerfile .; cd ..
+
+run-container: ## Run testing Docker container
+	cd build; docker run -v ${PWD}:/app/project/ -p 8899:8888 --shm-size 2g -ti nd013-c1-vision-starter bash; cd ..
+
+open-jupyter: ## Open running Jupyter Notebook in default browser
+	open http://localhost:8899
+
+tensorboard: ## Show experiment results in tensorboard
+	tensorboard serve --logdir experiments/
+
+# Commands useful in running Docker container
+run-jupyter: ## Run Jupyter notebook in Docker container
+	jupyter notebook --allow-root --ip 0.0.0.0 --port 8888 --no-browser
+```
+
+#### Training
+
+Training has been done in [Google Colab](https://colab.research.google.com/) (Pro version) environment, since Udacity workspace has certain storage/performance limitations. You can find example Jupyter Notebook (exported from Colab) used for training in `experiments/expement2/experiment2.ipynb`. Keep on mind, that the data used for training has to be available on Google Drive, that is mounted during notebook execution. Data has to be stored in directories:
+```
+/Projects/selfdrivingcar/test/
+/Projects/selfdrivingcar/train/
+/Projects/selfdrivingcar/val/
+```
 
 ### Dataset
 #### Dataset analysis
-This section should contain a quantitative and qualitative description of the dataset. It should include images, charts and other visualizations.
+Dataset contains variety of the image data captured by on-car front-facing camera. It includes bounding box annotations of three different classes: car, pedestrian and cyclist. Let's take a look at the example of the data:
+
+![](assets/eda/01_highway_sunny.png)
+![](assets/eda/02_night_reflections.png)
+![](assets/eda/03_urban_foggy.png)
+![](assets/eda/04_plenty_of_boxes.png)
+![](assets/eda/05_no_boxes.png)
+![](assets/eda/06_small_boxes.png)
+
+As we can see, the object detection on such diverse set of data is going to be challenging. We have to deal with different weather conditions sunny/foggy/raining, with camera defects like reflections, light/dark scene etc. 
+From bounding boxes perspective, some images contains huge amount of boxes, boxes overlap, and they are often very small. 
+
+Random sample of 1000 frames from dataset gives us hint how often each class appears in the data: 
+
+![](assets/eda/appearance_of_class.png)
+
+When we look at the overall count of the bounding boxes per class, we encounter huge disproportion. This might be issue and model might not perform well on less represented classes (`cyclist`):
+
+![](assets/eda/class_distribution.png)
+
+It might be also useful to know, what are the sizes of bounding boxes we have to deal with. Most of the time, the bounding box doesn't take more than 5% of the total size of an image. This data is calculated on sample of 1000 frames: 
+
+![](assets/eda/relative_bounding_box_size.png)
+
 #### Cross validation
-This section should detail the cross validation strategy and justify your approach.
+Dataset used for training consists of 97 preprocessed *.tfrecord files available at Udacity workspace. Files are split into training, validation and test set with script `create_splits.py`.
+
+Before split, files are shuffled to increase the probability of higher diversity of data in each set. 80% of the files is used for training, 10% for validation and 10% for test. 
 
 ### Training
+
+Every experiment's directory contains `pipeline_new.config` file with TF Object Detection API configuration. 
+
 #### Reference experiment
 
 | Config       | Value                                         |
@@ -154,26 +208,132 @@ This section should detail the cross validation strategy and justify your approa
 | Model        | `ssd_resnet50_v1_fpn_640x640_coco17_tpu-8`    |
 | Augmentation | `random_horizontal_flip`, `random_crop_image` |
 | Optimizer    | `momentum_optimizer`                          |
+| Learning rate| `cosine_decay_learning_rate`                  |
 | Batch size   | 4                                             |
 
 ##### Results
-- Precision mAP slightly over 10 %
-- Model performance - poor
-- [TensorBoard.dev experiment](https://tensorboard.dev/experiment/PuoUG3DwQeuWZv8vsgNeQw/)
+- [Tensorboard.dev](https://tensorboard.dev/experiment/PuoUG3DwQeuWZv8vsgNeQw/#scalars)
+- mAP slightly over 10 %
+- Performance of the model decreases fast with the decreasing bounding box size
+- Model starts to overfit quite quickly
+
+![reference_precision](assets/experiments/reference_precision.png)
+![reference_loss](assets/experiments/reference_loss.png)
 
 #### Experiment 0 - more data augmentation
+
+At this experiment, multiple data augmentation techniques were applied to increase data variety and thus increase robustness of the model.
 
 | Config       | Value                                         |
 |--------------|-----------------------------------------------|
 | Model        | `ssd_resnet50_v1_fpn_640x640_coco17_tpu-8`    |
 | Augmentation | `random_horizontal_flip`, `random_crop_image`, `random_adjust_saturation`, `random_adjust_brightness`, `random_adjust_contrast` |
 | Optimizer    | `momentum_optimizer`                          |
+| Learning rate| `cosine_decay_learning_rate`                  |
 | Batch size   | 4                                             |
 
 ##### Results
-- TBD
+- [Tensorboard.dev](https://tensorboard.dev/experiment/oYy410I1RTKCxf1zEJsAuw/#scalars)
+- Model unexpectedly behaved worse than reference at basically all measured metric. This was probably caused by modifying (augmenting) images too much, by creating unrealistic data, even that it wasn't noticeable when experimenting with `Explore augmentations` notebook. 
 
-This section should detail the results of the reference experiment. It should includes training metrics and a detailed explanation of the algorithm's performances.
+![00_precision](assets/experiments/00_precision.png)
+![00_loss](assets/experiments/00_loss.png)
 
-#### Improve on the reference
-This section should highlight the different strategies you adopted to improve your model. It should contain relevant figures and details of your findings.
+#### Experiment 1 - Adam optimizer & manual_step_learning_rate
+
+| Config       | Value                                                                                    |
+|--------------|------------------------------------------------------------------------------------------|
+| Model        | `ssd_resnet50_v1_fpn_640x640_coco17_tpu-8`                                               |
+| Augmentation | `random_horizontal_flip`, `random_crop_image`                                            |
+| Optimizer    | `adam_optimizer`                                                                         |
+| Learning rate| `manual_step_learning_rate: <0,15000) = 0.001, <15000,20000) = 0.0001, <20000,25000> = 0.00001` |
+| Batch size   | 4                                                                                        |
+
+##### Results
+- [Tensorboard.dev](https://tensorboard.dev/experiment/JZM4sWFbRbG1XQ7n7jxJsA/#scalars)
+- Better mAP - 16.13%
+- Model still performs bad on small bounding boxes - mAP = <5%
+- It's not a good practise to change multiple parameters of the model simultaneously (optimizer & lr), but I prefer to try to iterate faster across multiple solutions at this project
+- We can see big influence of learning rate change at 15k step mark
+
+![01_precision](assets/experiments/01_precision.png)
+![01_loss](assets/experiments/01_loss.png)
+
+#### Experiment 2 - Adam optimizer with faster lr decrease
+
+This experiment focus on faster fine-tuning (`0.0001` from 10k step instead of 15k).
+
+| Config       | Value                                                                                           |
+|--------------|-------------------------------------------------------------------------------------------------|
+| Model        | `ssd_resnet50_v1_fpn_640x640_coco17_tpu-8`                                                      |
+| Augmentation | `random_horizontal_flip`, `random_crop_image`                                                   |
+| Optimizer    | `adam_optimizer`                                                                                |
+| Learning rate| `manual_step_learning_rate: <0,10000) = 0.001, <10000,20000) = 0.0001, <20000,25000> = 0.00001` |
+| Batch size   | 4                                                                                               |
+
+##### Results
+- [Tensorboard.dev](https://tensorboard.dev/experiment/M0FwWIxBSjK0gkckcM2G4g/#scalars)
+- Changed learning rate had almost no effect on mAP, but .50IOU and .75IOU increased considerably. IOU basically says, how much overlap is between ground truth BB and detected BB. 
+
+![02_precision](assets/experiments/02_precision.png)
+![02_loss](assets/experiments/02_loss.png)
+
+#### Experiment 3 - Resnet model with resolution 1024x1024
+
+Based on fact, model perform bad on small bounding boxes, input image resolution increase might help. It was necessary to decrease batch size to 3 due to OOM (out of memory) exceptions in Colab Pro environment. This might make model training less stable (increase volatility), but it should not affect overall performance of the model. 
+
+| Config       | Value                                         |
+|--------------|-----------------------------------------------|
+| Model        | `ssd_resnet50_v1_fpn_1024x1024_coco17_tpu-8`  |
+| Augmentation | `random_horizontal_flip`, `random_crop_image` |
+| Optimizer    | `adam_optimizer`                              |
+| Learning rate| `manual_step_learning_rate: <0,10000) = 0.001, <10000,20000) = 0.0001, <20000,25000> = 0.00001`|
+| Batch size   | 3                                             |
+
+##### Results
+- [Tensorboard.dev](https://tensorboard.dev/experiment/WnNXNlOsQ9uJPD5puVj7uw/#scalars)
+- Training time increased significantly (4h vs 2.2h), even with smaller batch size
+- Best performance on mAP small, but still not comparable with mAP large/medium
+
+![03_precision](assets/experiments/03_precision.png)
+![03_loss](assets/experiments/03_loss.png)
+
+#### Experiment 4 - different random_crop_image config 
+Based on information from https://arxiv.org/pdf/1512.02325.pdf, data augmentation is really important to small object detection. Once again, I have tried to play with augmentation, so this configuration has been applied as `random_crop_image` augmentation option:
+
+```yaml
+random_crop_image {
+  min_object_covered: 0.0
+  min_aspect_ratio: 0.75
+  max_aspect_ratio: 1.33 # decrease from 3.0 to preserve image aspect ratio
+  min_area: 0.1 # decrease from 0.75 to allow smaller cropped area 
+  max_area: 1.0
+  overlap_thresh: 0.0
+}
+```
+
+| Config       | Value                                         |
+|--------------|-----------------------------------------------|
+| Model        | `ssd_resnet50_v1_fpn_640x640_coco17_tpu-8`    |
+| Augmentation | `random_horizontal_flip`, `random_crop_image` |
+| Optimizer    | `adam_optimizer`                              |
+| Learning rate| `manual_step_learning_rate: <0,10000) = 0.001, <10000,20000) = 0.0001, <20000,25000> = 0.00001`|
+| Batch size   | 4                                             |
+
+##### Results
+- [Tensorboard.dev](https://tensorboard.dev/experiment/aLZvQrNEQXy4YWZMQP5fAA/#scalars)
+- Model starts to overfit quickly. More training data might help bypass this.
+
+![04_precision](assets/experiments/04_precision.png)
+![04_loss](assets/experiments/04_loss.png)
+
+### Overall results & takeaways
+- [Tensorboard.dev](https://tensorboard.dev/experiment/5VDfqCrVS3OLLagPgf7igw/#scalars) - combined data from all of the experiments
+- Almost all models performs better (mAP & IOU) than reference
+- Optimizers have different memory (RAM) requirements (Adam >>> Momentum)
+- Experiment 2 provided probably best model - best performance at almost every metric
+- Ideas for next experiments: more evaluation data; more training data; more steps  
+
+![overall_precision](assets/experiments/overall_precision.png)
+![overall_75IOU](assets/experiments/overall_75IOU.png)
+![inference_animation](assets/inference_animation.gif)
