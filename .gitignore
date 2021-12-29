@@ -5,3 +5,6 @@ data/train
 data/val
 data/test
 experiments/pretrained_model
+*checkpoint
+*ckpt-*
+*events.out*
