@@ -11,6 +11,8 @@ run-container: ## Run testing Docker container
 open-jupyter: ## Open running Jupyter Notebook in default browser
 	open http://localhost:8899
 
+tensorboard: ## Show experiment results in tensorboard
+	tensorboard serve --logdir experiments/
 
 # Commands useful in running Docker container
 run-jupyter: ## Run Jupyter notebook in Docker container
