@@ -99,9 +99,6 @@ Once the training is finished, launch the evaluation process:
 python experiments/model_main_tf2.py --model_dir=experiments/reference/ --pipeline_config_path=experiments/reference/pipeline_new.config --checkpoint_dir=experiments/reference/
 ```
 
-**Note**: Both processes will display some Tensorflow warnings, which can be ignored. You may have to kill the evaluation script manually using
-`CTRL+C`.
-
 To monitor the training, you can launch a tensorboard instance by running `python -m tensorboard.main --logdir experiments/reference/`. You will report your findings in the writeup.
 
 ### Improve the performances
@@ -127,7 +124,7 @@ Finally, you can create a video of your model's inferences for any tf record fil
 python inference_video.py --labelmap_path label_map.pbtxt --model_path experiments/reference/exported/saved_model --tf_record_path /data/waymo/testing/segment-12200383401366682847_2552_140_2572_140_with_camera_labels.tfrecord --config_path experiments/reference/pipeline_new.config --output_path animation.gif
 ```
 
-## Submission Template
+## Project Summary
 
 ### Project overview
 This project aims to utilize Tensorflow Object Detection API for object detection task in image data captured by on-car camera. Waymo Open Dataset is used as a source of training, validation and test data. The goal is to detect cars, pedestrians and cyclists, and correctly classify them. Self-driving car task relies heavily on object detection / image data since it brings a lot of information about surrounding world.
@@ -193,7 +190,7 @@ It might be also useful to know, what are the sizes of bounding boxes we have to
 ![](assets/eda/relative_bounding_box_size.png)
 
 #### Cross validation
-Dataset used for training consists of 97 preprocessed *.tfrecord files available at Udacity workspace. Files are split into training, validation and test set with script `create_splits.py`.
+Used dataset consists of 97 preprocessed *.tfrecord files available at Udacity workspace. Files are split into training, validation and test set with script `create_splits.py`.
 
 Before split, files are shuffled to increase the probability of higher diversity of data in each set. 80% of the files is used for training, 10% for validation and 10% for test. 
 
@@ -215,14 +212,13 @@ Every experiment's directory contains `pipeline_new.config` file with TF Object 
 - [Tensorboard.dev](https://tensorboard.dev/experiment/PuoUG3DwQeuWZv8vsgNeQw/#scalars)
 - mAP slightly over 10 %
 - Performance of the model decreases fast with the decreasing bounding box size
-- Model starts to overfit quite quickly
 
 ![reference_precision](assets/experiments/reference_precision.png)
 ![reference_loss](assets/experiments/reference_loss.png)
 
 #### Experiment 0 - more data augmentation
 
-At this experiment, multiple data augmentation techniques were applied to increase data variety and thus increase robustness of the model.
+At this experiment, multiple data augmentation techniques were applied to increase data variety and thus increase robustness (generalize better) of the model.
 
 | Config       | Value                                         |
 |--------------|-----------------------------------------------|
@@ -280,7 +276,7 @@ This experiment focus on faster fine-tuning (`0.0001` from 10k step instead of 1
 
 #### Experiment 3 - Resnet model with resolution 1024x1024
 
-Based on fact, model perform bad on small bounding boxes, input image resolution increase might help. It was necessary to decrease batch size to 3 due to OOM (out of memory) exceptions in Colab Pro environment. This might make model training less stable (increase volatility), but it should not affect overall performance of the model. 
+Based on fact, model perform bad on small bounding boxes, input image resolution increase might help. It was necessary to decrease batch size to 3 due to OOM (out of memory) exceptions in Colab Pro environment. This might make model training less stable (increase volatility of loss function and metrics), but it should not affect overall performance of the model. 
 
 | Config       | Value                                         |
 |--------------|-----------------------------------------------|
@@ -322,18 +318,21 @@ random_crop_image {
 
 ##### Results
 - [Tensorboard.dev](https://tensorboard.dev/experiment/aLZvQrNEQXy4YWZMQP5fAA/#scalars)
-- Model starts to overfit quickly. More training data might help bypass this.
+- There was no noticeable improvement on observed metrics
 
 ![04_precision](assets/experiments/04_precision.png)
 ![04_loss](assets/experiments/04_loss.png)
 
 ### Overall results & takeaways
-- [Tensorboard.dev](https://tensorboard.dev/experiment/5VDfqCrVS3OLLagPgf7igw/#scalars) - combined data from all of the experiments
+- [Tensorboard.dev](https://tensorboard.dev/experiment/5VDfqCrVS3OLLagPgf7igw/#scalars) - combined data from all experiments
 - Almost all models performs better (mAP & IOU) than reference
 - Optimizers have different memory (RAM) requirements (Adam >>> Momentum)
 - Experiment 2 provided probably best model - best performance at almost every metric
-- Ideas for next experiments: more evaluation data; more training data; more steps  
+- Ideas for next experiments:
+  - Try to overfit network on smaller dataset. This gives us information if the architecture (& number of weights) is complex enough to be able to learn how to solve this task.  
+  - Increase step count. There is probably some capacity to reach better performance since loss function still declines, both on training and validation set, at 25k step mark.
 
 ![overall_precision](assets/experiments/overall_precision.png)
 ![overall_75IOU](assets/experiments/overall_75IOU.png)
+#### Demonstration of experiment 2 model performance
 ![inference_animation](assets/inference_animation.gif)
