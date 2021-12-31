@@ -212,13 +212,15 @@ Every experiment's directory contains `pipeline_new.config` file with TF Object 
 - [Tensorboard.dev](https://tensorboard.dev/experiment/PuoUG3DwQeuWZv8vsgNeQw/#scalars)
 - mAP slightly over 10 %
 - Performance of the model decreases fast with the decreasing bounding box size
+- Training and validation loss decline at initial/intermediate parts of the training what means the model is successfully learning 
+- Model shows a tendency to overfitting at the final stages of the training. Both classification and localization losses of training set continue decline slightly, but losses the validation dataset reached a plateau. We can expect validation loss to increase if we increase number of training steps.
 
 ![reference_precision](assets/experiments/reference_precision.png)
 ![reference_loss](assets/experiments/reference_loss.png)
 
 #### Experiment 0 - more data augmentation
 
-At this experiment, multiple data augmentation techniques were applied to increase data variety and thus increase robustness (generalize better) of the model.
+At this experiment, multiple data augmentation techniques were applied to increase data variety and thus increase the robustness (generalize better) of the model.
 
 | Config       | Value                                         |
 |--------------|-----------------------------------------------|
@@ -230,7 +232,7 @@ At this experiment, multiple data augmentation techniques were applied to increa
 
 ##### Results
 - [Tensorboard.dev](https://tensorboard.dev/experiment/oYy410I1RTKCxf1zEJsAuw/#scalars)
-- Model unexpectedly behaved worse than reference at basically all measured metric. This was probably caused by modifying (augmenting) images too much, by creating unrealistic data, even that it wasn't noticeable when experimenting with `Explore augmentations` notebook. 
+- Model unexpectedly behaved worse than reference at basically all measured metrics. This was probably caused by modifying (augmenting) images too much, by creating unrealistic data, even though it wasn't noticeable when experimenting with `Explore augmentations` notebook. 
 
 ![00_precision](assets/experiments/00_precision.png)
 ![00_loss](assets/experiments/00_loss.png)
@@ -249,15 +251,15 @@ At this experiment, multiple data augmentation techniques were applied to increa
 - [Tensorboard.dev](https://tensorboard.dev/experiment/JZM4sWFbRbG1XQ7n7jxJsA/#scalars)
 - Better mAP - 16.13%
 - Model still performs bad on small bounding boxes - mAP = <5%
-- It's not a good practise to change multiple parameters of the model simultaneously (optimizer & lr), but I prefer to try to iterate faster across multiple solutions at this project
-- We can see big influence of learning rate change at 15k step mark
+- It's not a good practice to change multiple parameters of the model simultaneously (optimizer & lr), but I prefer to try to iterate faster across multiple solutions at this project
+- We can see a big influence of learning rate change at 15k step mark
 
 ![01_precision](assets/experiments/01_precision.png)
 ![01_loss](assets/experiments/01_loss.png)
 
 #### Experiment 2 - Adam optimizer with faster lr decrease
 
-This experiment focus on faster fine-tuning (`0.0001` from 10k step instead of 15k).
+This experiment focuses on faster fine-tuning (`0.0001` from 10k step instead of 15k).
 
 | Config       | Value                                                                                           |
 |--------------|-------------------------------------------------------------------------------------------------|
@@ -269,14 +271,14 @@ This experiment focus on faster fine-tuning (`0.0001` from 10k step instead of 1
 
 ##### Results
 - [Tensorboard.dev](https://tensorboard.dev/experiment/M0FwWIxBSjK0gkckcM2G4g/#scalars)
-- Changed learning rate had almost no effect on mAP, but .50IOU and .75IOU increased considerably. IOU basically says, how much overlap is between ground truth BB and detected BB. 
+- Changed learning rate had almost no effect on mAP, but .50IOU and .75IOU increased considerably. IOU says how much overlap is between ground truth BB and detected BB. 
 
 ![02_precision](assets/experiments/02_precision.png)
 ![02_loss](assets/experiments/02_loss.png)
 
 #### Experiment 3 - Resnet model with resolution 1024x1024
 
-Based on fact, model perform bad on small bounding boxes, input image resolution increase might help. It was necessary to decrease batch size to 3 due to OOM (out of memory) exceptions in Colab Pro environment. This might make model training less stable (increase volatility of loss function and metrics), but it should not affect overall performance of the model. 
+Based on fact, model performs bad on small bounding boxes, input image resolution increase might help. It was necessary to decrease the batch size to 3 due to OOM (out of memory) exceptions in Colab Pro environment. This might make model training less stable (increase volatility of loss function and metrics), but it should not affect overall performance of the model. 
 
 | Config       | Value                                         |
 |--------------|-----------------------------------------------|
@@ -288,14 +290,15 @@ Based on fact, model perform bad on small bounding boxes, input image resolution
 
 ##### Results
 - [Tensorboard.dev](https://tensorboard.dev/experiment/WnNXNlOsQ9uJPD5puVj7uw/#scalars)
-- Training time increased significantly (4h vs 2.2h), even with smaller batch size
+- Training time increased significantly (4h vs. 2.2h), even with a smaller batch size
 - Best performance on mAP small, but still not comparable with mAP large/medium
+- We can spot smaller values of localization loss in comparison with other models, probably due to the higher resolution of an input image. This helps the model to place bounding boxes more precisely.   
 
 ![03_precision](assets/experiments/03_precision.png)
 ![03_loss](assets/experiments/03_loss.png)
 
 #### Experiment 4 - different random_crop_image config 
-Based on information from https://arxiv.org/pdf/1512.02325.pdf, data augmentation is really important to small object detection. Once again, I have tried to play with augmentation, so this configuration has been applied as `random_crop_image` augmentation option:
+Based on information from https://arxiv.org/pdf/1512.02325.pdf, data augmentation is significant to small object detection. Once again, I have tried to play with augmentation, so this configuration has been applied as `random_crop_image` augmentation option:
 
 ```yaml
 random_crop_image {
@@ -325,11 +328,12 @@ random_crop_image {
 
 ### Overall results & takeaways
 - [Tensorboard.dev](https://tensorboard.dev/experiment/5VDfqCrVS3OLLagPgf7igw/#scalars) - combined data from all experiments
-- Almost all models performs better (mAP & IOU) than reference
+- Almost all models perform better (mAP & IOU) than reference
 - Optimizers have different memory (RAM) requirements (Adam >>> Momentum)
 - Experiment 2 provided probably best model - best performance at almost every metric
+- All presented models show a tendency to overfitting at the last stage of training. I also made an experiment ([Tensorboard.dev](https://tensorboard.dev/experiment/P8tBx3w0SDaCgtrmY99yRQ/#scalars)) with an increased step count (40k) and as we can see, 25k step count is "sweet spot" between underfitting and overfitting.
 - Ideas for next experiments:
-  - Try to overfit network on smaller dataset. This gives us information if the architecture (& number of weights) is complex enough to be able to learn how to solve this task.  
+  - Try to overfit the network on a smaller dataset. This gives us information if the architecture (and the number of weights) is complex enough to learn how to solve this task.  
   - Increase step count. There is probably some capacity to reach better performance since loss function still declines, both on training and validation set, at 25k step mark.
 
 ![overall_precision](assets/experiments/overall_precision.png)
