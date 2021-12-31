@@ -192,7 +192,7 @@ It might be also useful to know, what are the sizes of bounding boxes we have to
 #### Cross validation
 Used dataset consists of 97 preprocessed *.tfrecord files available at Udacity workspace. Files are split into training, validation and test set with script `create_splits.py`.
 
-Before split, files are shuffled to increase the probability of higher diversity of data in each set. 80% of the files is used for training, 10% for validation and 10% for test. 
+Before split, files are shuffled to increase the probability of higher diversity of data in each set. 90% of the files is used for training, 5% for validation and 5% for test. 
 
 ### Training
 
